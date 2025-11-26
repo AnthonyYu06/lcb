@@ -23,28 +23,6 @@ SAFE_GLOBALS = {
 }
 
 
-def _column_to_index(column: str) -> int:
-    column = column.strip().upper()
-    if not column.isalpha():
-        raise ValueError(f"Invalid column name: {column}")
-
-    index = 0
-    for char in column:
-        index = index * 26 + (ord(char) - ord("A") + 1)
-    return index
-
-
-def _index_to_column(index: int) -> str:
-    if index < 1:
-        raise ValueError("Column index must be positive")
-
-    letters: List[str] = []
-    while index:
-        index, remainder = divmod(index - 1, 26)
-        letters.append(chr(remainder + ord("A")))
-    return "".join(reversed(letters))
-
-
 def resolve_worksheet(
     client: gspread.Client, spreadsheet_id: str, worksheet_name: str | None
 ) -> gspread.Worksheet:
@@ -122,33 +100,16 @@ def run_tests_from_sheet(
     spreadsheet_id: str,
     worksheet_name: str | None = None,
     start_row: int = 1,
-    expression_column: str = "A",
-    expected_column: str = "B",
-    actual_column: str = "C",
-    status_column: str = "D",
 ) -> List[List[str]]:
-    """Evaluate expressions in one column against expectations in another."""
+    """Evaluate expressions in column A against expected values in column B."""
 
     worksheet = resolve_worksheet(client, spreadsheet_id, worksheet_name)
-
-    expression_idx = _column_to_index(expression_column)
-    expected_idx = _column_to_index(expected_column)
-    actual_col = _index_to_column(_column_to_index(actual_column))
-    status_col = _index_to_column(_column_to_index(status_column))
-
-    start_idx = min(expression_idx, expected_idx)
-    end_idx = max(expression_idx, expected_idx)
-    start_col = _index_to_column(start_idx)
-    end_col = _index_to_column(end_idx)
-
-    values = worksheet.get(f"{start_col}{start_row}:{end_col}")
-    expr_offset = expression_idx - start_idx
-    expected_offset = expected_idx - start_idx
+    values = worksheet.get(f"A{start_row}:B")
 
     outputs: List[List[str]] = []
     for row in values:
-        code = row[expr_offset].strip() if len(row) > expr_offset else ""
-        expected = row[expected_offset].strip() if len(row) > expected_offset else ""
+        code = row[0].strip() if row and len(row) > 0 else ""
+        expected = row[1].strip() if len(row) > 1 else ""
 
         if not code:
             outputs.append(["", "NO CODE"])
@@ -167,13 +128,6 @@ def run_tests_from_sheet(
 
     if outputs:
         end_row = start_row + len(outputs) - 1
-        actual_values = [[row[0]] for row in outputs]
-        status_values = [[row[1]] for row in outputs]
-        worksheet.update(
-            f"{actual_col}{start_row}:{actual_col}{end_row}", actual_values
-        )
-        worksheet.update(
-            f"{status_col}{start_row}:{status_col}{end_row}", status_values
-        )
+        worksheet.update(f"C{start_row}:D{end_row}", outputs)
     console.print(f"Evaluated {len(outputs)} rows of expressions.")
     return outputs

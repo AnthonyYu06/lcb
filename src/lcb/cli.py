@@ -113,18 +113,6 @@ def eval_tests(
         None, "--worksheet", "-w", help="Worksheet title (defaults to the first sheet)"
     ),
     start_row: int = typer.Option(1, "--start-row", help="Row to begin reading tests"),
-    expression_column: str = typer.Option(
-        "A", "--expression-column", help="Column containing expressions to evaluate"
-    ),
-    expected_column: str = typer.Option(
-        "B", "--expected-column", help="Column containing expected values"
-    ),
-    actual_column: str = typer.Option(
-        "C", "--actual-column", help="Column to write the actual evaluation results"
-    ),
-    status_column: str = typer.Option(
-        "D", "--status-column", help="Column to write PASS/FAIL/ERROR markers"
-    ),
     credentials: Path = typer.Option(
         None,
         "--credentials",
@@ -133,7 +121,7 @@ def eval_tests(
         help="Path to a Google service account JSON file.",
     ),
 ):
-    """Run expressions in one column against expected values in another."""
+    """Run expressions in column A against expected values in column B."""
 
     settings = load_settings(credentials)
     client = create_gspread_client(settings)
@@ -142,10 +130,6 @@ def eval_tests(
         spreadsheet_id=spreadsheet_id,
         worksheet_name=worksheet,
         start_row=start_row,
-        expression_column=expression_column,
-        expected_column=expected_column,
-        actual_column=actual_column,
-        status_column=status_column,
     )
 
 

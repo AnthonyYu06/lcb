@@ -60,14 +60,6 @@ lcb eval-tests <spreadsheet-id> --worksheet Sheet1 --start-row 1
 
 Results are written back to columns C (actual value) and D (PASS/FAIL/ERROR).
 
-If your sheet uses different columns, point the command at them explicitly. For example, to
-evaluate expressions in column `B`, compare them to expectations in column `S`, and write
-outputs to columns `T` and `U`:
-
-```bash
-lcb eval-tests <spreadsheet-id> --expression-column B --expected-column S --actual-column T --status-column U
-```
-
 ## Notes
 
 - The first worksheet is used by default; target a specific sheet via `--worksheet`.
