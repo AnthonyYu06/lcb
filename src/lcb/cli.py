@@ -9,7 +9,7 @@ from rich import print
 
 from .auth import create_gspread_client
 from .config import GoogleSettings
-from .sheets import pull_range, push_range
+from .sheets import pull_range, push_range, run_tests_from_sheet
 
 app = typer.Typer(add_completion=False, help="CLI helper for Google Sheets workflows")
 
@@ -103,6 +103,49 @@ def push(
         range_a1=range_a1,
         worksheet_name=worksheet,
         text=payload,
+    )
+
+
+@app.command()
+def eval_tests(
+    spreadsheet_id: str = typer.Argument(..., help="Spreadsheet ID from the URL"),
+    worksheet: Optional[str] = typer.Option(
+        None, "--worksheet", "-w", help="Worksheet title (defaults to the first sheet)"
+    ),
+    start_row: int = typer.Option(1, "--start-row", help="Row to begin reading tests"),
+    expression_column: str = typer.Option(
+        "A", "--expression-column", help="Column containing expressions to evaluate"
+    ),
+    expected_column: str = typer.Option(
+        "B", "--expected-column", help="Column containing expected values"
+    ),
+    actual_column: str = typer.Option(
+        "C", "--actual-column", help="Column to write the actual evaluation results"
+    ),
+    status_column: str = typer.Option(
+        "D", "--status-column", help="Column to write PASS/FAIL/ERROR markers"
+    ),
+    credentials: Path = typer.Option(
+        None,
+        "--credentials",
+        file_okay=True,
+        dir_okay=False,
+        help="Path to a Google service account JSON file.",
+    ),
+):
+    """Run expressions in one column against expected values in another."""
+
+    settings = load_settings(credentials)
+    client = create_gspread_client(settings)
+    run_tests_from_sheet(
+        client=client,
+        spreadsheet_id=spreadsheet_id,
+        worksheet_name=worksheet,
+        start_row=start_row,
+        expression_column=expression_column,
+        expected_column=expected_column,
+        actual_column=actual_column,
+        status_column=status_column,
     )
 
 
