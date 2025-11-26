@@ -1,0 +1,24 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "lcb"
+version = "0.1.0"
+description = "Local clipboard helper for Google Sheets workflows"
+authors = [{ name = "Your Name" }]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "gspread>=6.0",
+    "google-auth>=2.30",
+    "typer>=0.12",
+    "rich>=13.7",
+    "pyperclip>=1.8",
+]
+
+[project.scripts]
+lcb = "lcb.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/lcb"]
