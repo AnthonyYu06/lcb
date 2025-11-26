@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from typing import Iterable, List, Sequence
 
 import gspread
@@ -10,6 +11,16 @@ from rich.table import Table
 from .clipboard import clipboard_to_values, values_to_clipboard
 
 console = Console()
+SAFE_GLOBALS = {
+    "__builtins__": {},
+    "abs": abs,
+    "min": min,
+    "max": max,
+    "sum": sum,
+    "len": len,
+    "round": round,
+    "math": math,
+}
 
 
 def resolve_worksheet(
@@ -74,3 +85,49 @@ def push_range(
     worksheet.update(range_a1, values)
     console.print(f"Updated range {range_a1} with {len(values)} rows.")
     return values
+
+
+def evaluate_expression(expression: str) -> str:
+    """Evaluate a Python expression with limited globals and return a string result."""
+
+    compiled = compile(expression, "<sheet-expression>", "eval")
+    result = eval(compiled, SAFE_GLOBALS, {})
+    return str(result)
+
+
+def run_tests_from_sheet(
+    client: gspread.Client,
+    spreadsheet_id: str,
+    worksheet_name: str | None = None,
+    start_row: int = 1,
+) -> List[List[str]]:
+    """Evaluate expressions in column A against expected values in column B."""
+
+    worksheet = resolve_worksheet(client, spreadsheet_id, worksheet_name)
+    values = worksheet.get(f"A{start_row}:B")
+
+    outputs: List[List[str]] = []
+    for row in values:
+        code = row[0].strip() if row and len(row) > 0 else ""
+        expected = row[1].strip() if len(row) > 1 else ""
+
+        if not code:
+            outputs.append(["", "NO CODE"])
+            continue
+
+        try:
+            actual = evaluate_expression(code)
+            status = "PASS" if expected and actual == expected else "FAIL"
+            if not expected:
+                status = "NO EXPECTATION"
+        except Exception as exc:  # pragma: no cover - surfaced to the sheet
+            actual = f"Error: {exc}"
+            status = "ERROR"
+
+        outputs.append([actual, status])
+
+    if outputs:
+        end_row = start_row + len(outputs) - 1
+        worksheet.update(f"C{start_row}:D{end_row}", outputs)
+    console.print(f"Evaluated {len(outputs)} rows of expressions.")
+    return outputs
